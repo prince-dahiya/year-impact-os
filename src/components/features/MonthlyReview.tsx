@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useScores } from '@/hooks/useAppData';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Lightbulb } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, Lightbulb, BarChart3, Target, Flame } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function MonthlyReview({ year }: { year: number }) {
   const { monthlyScores, yearlyScore, getStreakDays } = useScores(year);
@@ -12,8 +13,10 @@ export function MonthlyReview({ year }: { year: number }) {
   const streak = getStreakDays();
   const trackedDays = current.activeDays + current.breakDays;
   const totalDays = current.totalDays;
+  const completionRate = current.totalPossibleActions > 0
+    ? Math.round((current.completedActions / current.totalPossibleActions) * 100)
+    : 0;
 
-  // Find strongest/weakest (simulated from consistency)
   const strongestArea = current.percentage >= 70 ? 'Consistency' : 'Showing Up';
   const weakestArea = current.percentage < 50 ? 'Daily Completion' : 'Maintaining Streaks';
 
@@ -24,53 +27,101 @@ export function MonthlyReview({ year }: { year: number }) {
     current.percentage >= 80 && 'Amazing month! Consider adding a new challenge.',
   ].filter(Boolean);
 
+  // Performance grade
+  const getGrade = (pct: number) => {
+    if (pct >= 90) return { grade: 'A+', color: 'text-primary' };
+    if (pct >= 80) return { grade: 'A', color: 'text-primary' };
+    if (pct >= 70) return { grade: 'B+', color: 'text-primary' };
+    if (pct >= 60) return { grade: 'B', color: 'text-info' };
+    if (pct >= 50) return { grade: 'C', color: 'text-warning' };
+    return { grade: 'D', color: 'text-destructive' };
+  };
+
+  const grade = getGrade(current.percentage);
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
-          <Brain className="w-5 h-5 text-primary" />
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+            <Brain className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm">{months[currentMonth]} Review</h3>
+            <p className="text-xs text-muted-foreground">AI Performance Report</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-sm">Monthly Review</h3>
-          <p className="text-xs text-muted-foreground">AI-powered insights</p>
+        <div className="text-center">
+          <p className={cn('text-2xl font-bold font-mono', grade.color)}>{grade.grade}</p>
+          <p className="text-[10px] text-muted-foreground">Grade</p>
         </div>
       </div>
 
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-3 rounded-xl bg-secondary/50 text-center">
+          <Target className="w-3.5 h-3.5 text-primary mx-auto mb-1" />
+          <p className="font-mono font-bold text-lg">{trackedDays}</p>
+          <p className="text-[10px] text-muted-foreground">Days Active</p>
+        </div>
+        <div className="p-3 rounded-xl bg-secondary/50 text-center">
+          <BarChart3 className="w-3.5 h-3.5 text-info mx-auto mb-1" />
+          <p className="font-mono font-bold text-lg">{completionRate}%</p>
+          <p className="text-[10px] text-muted-foreground">Completion</p>
+        </div>
+        <div className="p-3 rounded-xl bg-secondary/50 text-center">
+          <Flame className="w-3.5 h-3.5 text-warning mx-auto mb-1" />
+          <p className="font-mono font-bold text-lg">{streak}</p>
+          <p className="text-[10px] text-muted-foreground">Streak</p>
+        </div>
+      </div>
+
+      {/* Analysis paragraph */}
       <div className="p-4 rounded-xl bg-secondary/50 space-y-2">
         <p className="text-sm leading-relaxed">
           This month you tracked <span className="font-mono font-bold text-primary">{trackedDays}</span> days out of {totalDays}.
           {previous && (
             <> Your consistency {improvement >= 0 ? 'improved' : 'decreased'} by{' '}
-              <span className={improvement >= 0 ? 'text-primary' : 'text-destructive'}>
+              <span className={cn('font-mono font-bold', improvement >= 0 ? 'text-primary' : 'text-destructive')}>
                 {Math.abs(improvement)}%
               </span>{' '}
               compared to last month.</>
           )}
-          {' '}Your strongest area was <span className="text-primary font-medium">{strongestArea}</span>.
-          {current.percentage < 80 && <> Your weakest was <span className="text-warning font-medium">{weakestArea}</span>.</>}
+          {' '}Your strongest area is <span className="text-primary font-medium">{strongestArea}</span>.
+          {current.percentage < 80 && <> Focus area: <span className="text-warning font-medium">{weakestArea}</span>.</>}
         </p>
       </div>
 
-      <div className="flex items-center gap-3 text-sm">
+      {/* Trend indicator */}
+      <div className={cn(
+        'flex items-center gap-3 p-3 rounded-xl',
+        improvement >= 0 ? 'bg-primary/5 border border-primary/10' : 'bg-destructive/5 border border-destructive/10'
+      )}>
         {improvement >= 0 ? (
-          <TrendingUp className="w-4 h-4 text-primary" />
+          <TrendingUp className="w-5 h-5 text-primary" />
         ) : (
-          <TrendingDown className="w-4 h-4 text-destructive" />
+          <TrendingDown className="w-5 h-5 text-destructive" />
         )}
-        <span className="text-muted-foreground">
-          Trend: {improvement >= 0 ? '+' : ''}{improvement}% from last month
+        <span className="text-sm">
+          <span className={cn('font-mono font-bold', improvement >= 0 ? 'text-primary' : 'text-destructive')}>
+            {improvement >= 0 ? '+' : ''}{improvement}%
+          </span>
+          <span className="text-muted-foreground ml-1.5">from last month</span>
         </span>
       </div>
 
+      {/* Suggestions */}
       {suggestions.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Lightbulb className="w-3.5 h-3.5 text-warning" />
-            <span className="uppercase tracking-wider">Suggestions</span>
+            <span className="uppercase tracking-wider font-medium">Next Month Suggestions</span>
           </div>
           {suggestions.map((s, i) => (
-            <div key={i} className="p-3 rounded-lg bg-warning/5 border border-warning/10 text-xs text-muted-foreground">
-              {s}
+            <div key={i} className="p-3 rounded-xl bg-warning/5 border border-warning/10 text-sm text-muted-foreground flex items-start gap-2">
+              <span className="text-warning mt-0.5">→</span>
+              <span>{s}</span>
             </div>
           ))}
         </div>
