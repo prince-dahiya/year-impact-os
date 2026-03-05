@@ -18,7 +18,7 @@ import { PerformanceMode } from '@/components/features/PerformanceMode';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Heart, Activity, Rocket, Brain, Gauge, Share2, Swords } from 'lucide-react';
+import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -28,9 +28,11 @@ export default function Dashboard() {
 
   if (showPerformance) {
     return (
-      <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
-        <PerformanceMode onBack={() => setShowPerformance(false)} />
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div key="perf" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
+          <PerformanceMode onBack={() => setShowPerformance(false)} />
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -71,20 +73,23 @@ export default function Dashboard() {
         {/* Performance Mode CTA */}
         <motion.button
           onClick={() => setShowPerformance(true)}
-          className="w-full glass-card p-4 flex items-center justify-between group"
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          className="w-full glass-card p-5 flex items-center justify-between group"
+          whileHover={{ scale: 1.005 }}
+          whileTap={{ scale: 0.995 }}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, hsl(280 100% 55%), hsl(320 100% 50%))' }}>
-              <Activity className="w-5 h-5 text-foreground" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-performance)' }}>
+              <Activity className="w-6 h-6 text-foreground" />
             </div>
             <div className="text-left">
               <h3 className="font-bold text-sm performance-gradient-text">Performance Mode</h3>
-              <p className="text-xs text-muted-foreground">GPS Run Tracker · Fitness Dashboard</p>
+              <p className="text-xs text-muted-foreground mt-0.5">GPS Run Tracker · Analytics · Leaderboard · Achievements</p>
             </div>
           </div>
-          <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">Enter →</span>
+          <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
+            <Play className="w-4 h-4" />
+            <span className="text-xs hidden sm:inline">Enter</span>
+          </div>
         </motion.button>
 
         {/* Main Tabs */}
