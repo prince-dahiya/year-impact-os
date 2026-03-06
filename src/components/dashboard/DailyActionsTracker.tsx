@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDailyActions, useCompletions, useBreaks } from '@/hooks/useAppData';
 import { format, isToday, isFuture, subDays, addDays } from 'date-fns';
-import { Check, Coffee, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Check, Coffee, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -26,8 +26,8 @@ export function DailyActionsTracker({ year }: { year: number }) {
       {/* Date Nav */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Daily Actions</h2>
-          <p className="text-xs text-muted-foreground font-mono">{format(selectedDate, 'EEEE, MMM d yyyy')}</p>
+          <h2 className="text-lg font-semibold">Today's Actions</h2>
+          <p className="text-xs text-muted-foreground font-mono">{format(selectedDate, 'EEE, MMM d')}</p>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(d => subDays(d, 1))}>
@@ -43,56 +43,57 @@ export function DailyActionsTracker({ year }: { year: number }) {
       </div>
 
       {/* Progress */}
-      <div className="glass-card p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">Progress</span>
-          <span className="text-sm font-mono font-bold">{completedCount}/{totalCount}</span>
+      {totalCount > 0 && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${percentage}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
+          <span className="text-xs font-mono text-muted-foreground">{completedCount}/{totalCount}</span>
         </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-primary rounded-full progress-bar-glow"
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-      </div>
+      )}
 
       {isDateBreak && (
         <div className="glass-card p-4 flex items-center gap-3 border-warning/30">
           <Coffee className="w-5 h-5 text-warning" />
-          <span className="text-sm text-warning">Break Day — Rest up! 🧘</span>
+          <span className="text-sm text-warning">Break Day — Rest up 🧘</span>
         </div>
       )}
 
       {actions.length === 0 ? (
-        <div className="glass-card p-6 text-center">
-          <Zap className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No actions yet. Add goals first, then create daily actions.</p>
+        <div className="glass-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">No actions yet. Add a goal first — actions are created automatically.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {actions.map((action, i) => {
             const isCompleted = completedIds.has(action.id);
+            const canToggle = !isFutureDate && !isDateBreak;
             return (
               <motion.button
                 key={action.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => !isFutureDate && !isDateBreak && toggleCompletion(action.id)}
-                disabled={isFutureDate || isDateBreak}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                onClick={() => canToggle && toggleCompletion(action.id)}
+                disabled={!canToggle}
                 className={cn(
-                  'w-full glass-card p-4 flex items-center gap-3 text-left transition-all duration-200',
-                  isCompleted && 'border-primary/30 bg-primary/5',
-                  !isFutureDate && !isDateBreak && 'hover:border-primary/20 cursor-pointer'
+                  'w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all duration-150',
+                  isCompleted
+                    ? 'bg-primary/8 border border-primary/20'
+                    : 'bg-secondary/40 border border-transparent',
+                  canToggle && !isCompleted && 'hover:bg-secondary/60 active:scale-[0.99]'
                 )}
               >
                 <div className={cn(
-                  'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0',
+                  'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
                   isCompleted ? 'bg-primary border-primary' : 'border-muted-foreground/30'
                 )}>
-                  {isCompleted && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
+                  {isCompleted && <Check className="w-3 h-3 text-primary-foreground" />}
                 </div>
                 <span className={cn('text-sm', isCompleted && 'line-through text-muted-foreground')}>{action.name}</span>
               </motion.button>
