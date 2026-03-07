@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Goal, DailyAction, ActionCompletion, Break, MonthlyScore, YearlyScore } from '@/types';
-import { format, getDaysInMonth, eachDayOfInterval, startOfMonth, endOfMonth, isAfter, isWithinInterval, parseISO, startOfYear, endOfYear, isBefore, differenceInDays, subDays } from 'date-fns';
+import { Goal, DailyAction, ActionCompletion, Break, MonthlyScore, YearlyScore, SprintSession, Challenge, PointEntry } from '@/types';
+import { format, getDaysInMonth, eachDayOfInterval, startOfMonth, endOfMonth, isAfter, isWithinInterval, parseISO, subDays, startOfWeek, endOfWeek } from 'date-fns';
 
 function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) => T)) => void] {
   const [state, setState] = useState<T>(() => {
@@ -62,9 +62,7 @@ export function useCompletions(date: Date) {
   const toggleCompletion = useCallback((actionId: string) => {
     setAllCompletions(prev => {
       const existing = prev.find(c => c.action_id === actionId && c.completed_date === dateStr);
-      if (existing) {
-        return prev.filter(c => c.id !== existing.id);
-      }
+      if (existing) return prev.filter(c => c.id !== existing.id);
       return [...prev, { id: crypto.randomUUID(), action_id: actionId, completed_date: dateStr }];
     });
   }, [dateStr, setAllCompletions]);
@@ -90,9 +88,8 @@ export function useBreaks(year: number) {
 
   const isBreakDay = useCallback((date: Date) => {
     return breaks.some(b => {
-      try {
-        return isWithinInterval(date, { start: parseISO(b.start_date), end: parseISO(b.end_date) });
-      } catch { return false; }
+      try { return isWithinInterval(date, { start: parseISO(b.start_date), end: parseISO(b.end_date) }); }
+      catch { return false; }
     });
   }, [breaks]);
 
@@ -107,6 +104,47 @@ export function useRunSessions() {
   }, [setSessions]);
 
   return { sessions, addSession };
+}
+
+export function useSprintSessions() {
+  const [sessions, setSessions] = useLocalStorage<SprintSession[]>('sprint-sessions', []);
+
+  const addSprint = useCallback((sprint: Omit<SprintSession, 'id'>) => {
+    setSessions(prev => [...prev, { ...sprint, id: crypto.randomUUID() }]);
+  }, [setSessions]);
+
+  return { sprints: sessions, addSprint };
+}
+
+export function useChallenges() {
+  const [challenges, setChallenges] = useLocalStorage<Challenge[]>('challenges', []);
+
+  const createChallenge = useCallback((c: Omit<Challenge, 'id' | 'current' | 'completed'>) => {
+    setChallenges(prev => [...prev, { ...c, id: crypto.randomUUID(), current: 0, completed: false }]);
+  }, [setChallenges]);
+
+  const updateProgress = useCallback((id: string, current: number) => {
+    setChallenges(prev => prev.map(c => c.id === id ? { ...c, current, completed: current >= c.target } : c));
+  }, [setChallenges]);
+
+  const deleteChallenge = useCallback((id: string) => {
+    setChallenges(prev => prev.filter(c => c.id !== id));
+  }, [setChallenges]);
+
+  return { challenges, createChallenge, updateProgress, deleteChallenge };
+}
+
+export function usePoints() {
+  const [points, setPoints] = useLocalStorage<{ total: number; history: PointEntry[] }>('user-points', { total: 0, history: [] });
+
+  const addPoints = useCallback((amount: number, reason: string) => {
+    setPoints(prev => ({
+      total: prev.total + amount,
+      history: [...prev.history, { id: crypto.randomUUID(), amount, reason, date: new Date().toISOString() }]
+    }));
+  }, [setPoints]);
+
+  return { points: points.total, history: points.history, addPoints };
 }
 
 export function useScores(year: number) {

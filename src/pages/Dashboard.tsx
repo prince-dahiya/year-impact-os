@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useScores } from '@/hooks/useAppData';
+import { useScores, usePoints } from '@/hooks/useAppData';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DailyActionsTracker } from '@/components/dashboard/DailyActionsTracker';
 import { GoalsManager } from '@/components/dashboard/GoalsManager';
@@ -11,18 +11,20 @@ import { FutureProjection } from '@/components/features/FutureProjection';
 import { MonthlyReview } from '@/components/features/MonthlyReview';
 import { ShareableCard } from '@/components/features/ShareableCard';
 import { LifeScore } from '@/components/features/LifeScore';
-import { NinetyDayChallenge } from '@/components/features/NinetyDayChallenge';
 import { PerformanceMode } from '@/components/features/PerformanceMode';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play } from 'lucide-react';
+import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play, Star } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const currentYear = new Date().getFullYear();
   const { yearlyScore, getStreakDays } = useScores(currentYear);
+  const { points } = usePoints();
   const [showPerformance, setShowPerformance] = useState(false);
+
+  const hasData = yearlyScore.daysTracked > 0;
 
   if (showPerformance) {
     return (
@@ -36,7 +38,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pb-12">
-      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -49,9 +50,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              {user?.name}
-            </span>
+            {points > 0 && (
+              <span className="text-xs font-mono text-warning flex items-center gap-1">
+                <Star className="w-3 h-3" /> {points}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground hidden sm:block">{user?.name}</span>
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8">
               <LogOut className="w-4 h-4" />
             </Button>
@@ -60,12 +64,32 @@ export default function Dashboard() {
       </header>
 
       <div className="container mx-auto px-4 py-5 space-y-5">
-        {/* Top Stats */}
+        {/* Top Stats - only show real values */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard title="Year Score" value={`${yearlyScore.totalPercentage}%`} icon={<TrendingUp className="w-4 h-4" />} delay={0} />
-          <StatCard title="Days Tracked" value={yearlyScore.daysTracked} icon={<Calendar className="w-4 h-4" />} delay={0.1} />
-          <StatCard title="Streak" value={`${getStreakDays()}🔥`} icon={<Zap className="w-4 h-4" />} delay={0.2} />
-          <StatCard title="Break Days" value={yearlyScore.breakDays} icon={<Coffee className="w-4 h-4" />} delay={0.3} />
+          <StatCard
+            title="Year Score"
+            value={hasData ? `${yearlyScore.totalPercentage}%` : '—'}
+            icon={<TrendingUp className="w-4 h-4" />}
+            delay={0}
+          />
+          <StatCard
+            title="Days Tracked"
+            value={hasData ? yearlyScore.daysTracked : 0}
+            icon={<Calendar className="w-4 h-4" />}
+            delay={0.1}
+          />
+          <StatCard
+            title="Streak"
+            value={hasData ? `${getStreakDays()}🔥` : '0🔥'}
+            icon={<Zap className="w-4 h-4" />}
+            delay={0.2}
+          />
+          <StatCard
+            title="Break Days"
+            value={yearlyScore.breakDays}
+            icon={<Coffee className="w-4 h-4" />}
+            delay={0.3}
+          />
         </div>
 
         {/* Performance Mode CTA */}
@@ -81,7 +105,7 @@ export default function Dashboard() {
             </div>
             <div className="text-left">
               <h3 className="font-semibold text-sm">Performance Mode</h3>
-              <p className="text-[10px] text-muted-foreground mt-0.5">GPS Run Tracker · Analytics · Achievements</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Run Tracker · Sprints · Challenges · Points</p>
             </div>
           </div>
           <Play className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -112,7 +136,6 @@ export default function Dashboard() {
               </div>
               <div className="space-y-5">
                 <LifeScore year={currentYear} />
-                <NinetyDayChallenge year={currentYear} />
               </div>
             </div>
           </TabsContent>

@@ -52,12 +52,43 @@ export interface YearlyScore {
 export interface RunSession {
   id: string;
   date: string;
-  distance: number; // km
-  duration: number; // seconds
-  avgPace: number; // min/km
+  distance: number;
+  duration: number;
+  avgPace: number;
   calories: number;
   route: [number, number][];
-  elevation?: number;
+  type: 'run' | 'sprint';
+}
+
+export interface SprintSession {
+  id: string;
+  date: string;
+  distance: number; // meters
+  duration: number; // seconds
+  speed: number; // km/h
+}
+
+export interface Challenge {
+  id: string;
+  name: string;
+  type: 'distance' | 'runs' | 'streak' | 'calories';
+  target: number;
+  current: number;
+  startDate: string;
+  endDate: string;
+  completed: boolean;
+}
+
+export interface UserPoints {
+  total: number;
+  history: PointEntry[];
+}
+
+export interface PointEntry {
+  id: string;
+  amount: number;
+  reason: string;
+  date: string;
 }
 
 export interface UserProfile {

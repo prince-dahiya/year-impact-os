@@ -9,6 +9,18 @@ export function MonthlyReview({ year }: { year: number }) {
   const current = monthlyScores[currentMonth];
   const previous = currentMonth > 0 ? monthlyScores[currentMonth - 1] : null;
 
+  const hasData = current.totalPossibleActions > 0;
+
+  if (!hasData) {
+    return (
+      <div className="glass-card p-6 text-center">
+        <Brain className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">Start tracking to get your monthly review</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Complete daily actions to generate insights</p>
+      </div>
+    );
+  }
+
   const improvement = previous ? current.percentage - previous.percentage : 0;
   const streak = getStreakDays();
   const trackedDays = current.activeDays + current.breakDays;
@@ -27,7 +39,6 @@ export function MonthlyReview({ year }: { year: number }) {
     current.percentage >= 80 && 'Amazing month! Consider adding a new challenge.',
   ].filter(Boolean);
 
-  // Performance grade
   const getGrade = (pct: number) => {
     if (pct >= 90) return { grade: 'A+', color: 'text-primary' };
     if (pct >= 80) return { grade: 'A', color: 'text-primary' };
@@ -49,7 +60,7 @@ export function MonthlyReview({ year }: { year: number }) {
           </div>
           <div>
             <h3 className="font-semibold text-sm">{months[currentMonth]} Review</h3>
-            <p className="text-xs text-muted-foreground">AI Performance Report</p>
+            <p className="text-xs text-muted-foreground">Performance Report</p>
           </div>
         </div>
         <div className="text-center">
@@ -58,7 +69,6 @@ export function MonthlyReview({ year }: { year: number }) {
         </div>
       </div>
 
-      {/* Quick stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="p-3 rounded-xl bg-secondary/50 text-center">
           <Target className="w-3.5 h-3.5 text-primary mx-auto mb-1" />
@@ -77,11 +87,10 @@ export function MonthlyReview({ year }: { year: number }) {
         </div>
       </div>
 
-      {/* Analysis paragraph */}
       <div className="p-4 rounded-xl bg-secondary/50 space-y-2">
         <p className="text-sm leading-relaxed">
           This month you tracked <span className="font-mono font-bold text-primary">{trackedDays}</span> days out of {totalDays}.
-          {previous && (
+          {previous && previous.totalPossibleActions > 0 && (
             <> Your consistency {improvement >= 0 ? 'improved' : 'decreased'} by{' '}
               <span className={cn('font-mono font-bold', improvement >= 0 ? 'text-primary' : 'text-destructive')}>
                 {Math.abs(improvement)}%
@@ -93,30 +102,26 @@ export function MonthlyReview({ year }: { year: number }) {
         </p>
       </div>
 
-      {/* Trend indicator */}
-      <div className={cn(
-        'flex items-center gap-3 p-3 rounded-xl',
-        improvement >= 0 ? 'bg-primary/5 border border-primary/10' : 'bg-destructive/5 border border-destructive/10'
-      )}>
-        {improvement >= 0 ? (
-          <TrendingUp className="w-5 h-5 text-primary" />
-        ) : (
-          <TrendingDown className="w-5 h-5 text-destructive" />
-        )}
-        <span className="text-sm">
-          <span className={cn('font-mono font-bold', improvement >= 0 ? 'text-primary' : 'text-destructive')}>
-            {improvement >= 0 ? '+' : ''}{improvement}%
+      {previous && previous.totalPossibleActions > 0 && (
+        <div className={cn(
+          'flex items-center gap-3 p-3 rounded-xl',
+          improvement >= 0 ? 'bg-primary/5 border border-primary/10' : 'bg-destructive/5 border border-destructive/10'
+        )}>
+          {improvement >= 0 ? <TrendingUp className="w-5 h-5 text-primary" /> : <TrendingDown className="w-5 h-5 text-destructive" />}
+          <span className="text-sm">
+            <span className={cn('font-mono font-bold', improvement >= 0 ? 'text-primary' : 'text-destructive')}>
+              {improvement >= 0 ? '+' : ''}{improvement}%
+            </span>
+            <span className="text-muted-foreground ml-1.5">from last month</span>
           </span>
-          <span className="text-muted-foreground ml-1.5">from last month</span>
-        </span>
-      </div>
+        </div>
+      )}
 
-      {/* Suggestions */}
       {suggestions.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Lightbulb className="w-3.5 h-3.5 text-warning" />
-            <span className="uppercase tracking-wider font-medium">Next Month Suggestions</span>
+            <span className="uppercase tracking-wider font-medium">Suggestions</span>
           </div>
           {suggestions.map((s, i) => (
             <div key={i} className="p-3 rounded-xl bg-warning/5 border border-warning/10 text-sm text-muted-foreground flex items-start gap-2">
