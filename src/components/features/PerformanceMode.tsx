@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { RunMap } from './RunMap';
 import {
   Play, Pause, Square, MapPin, Clock, Flame, TrendingUp, Trophy, ArrowLeft, Activity,
-  Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer
+  Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer, RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, endOfWeek, isWithinInterval, subWeeks, getDaysInMonth } from 'date-fns';
@@ -51,6 +51,9 @@ const SPRINT_BENCHMARKS = [
   { distance: 100, elite: 10, good: 13, average: 16, label: '100m' },
   { distance: 200, elite: 20, good: 26, average: 32, label: '200m' },
   { distance: 400, elite: 45, good: 58, average: 75, label: '400m' },
+  { distance: 800, elite: 102, good: 130, average: 170, label: '800m' },
+  { distance: 1600, elite: 230, good: 300, average: 400, label: '1600m' },
+  { distance: 1800, elite: 270, good: 345, average: 460, label: '1800m' },
 ];
 
 const CHALLENGE_TEMPLATES = [
@@ -374,16 +377,16 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                 {!isSprintRunning && (
                   <div>
                     <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
-                    <div className="flex gap-2">
-                      {[100, 200, 400].map(d => (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[100, 200, 400, 800, 1600, 1800].map(d => (
                         <button
                           key={d}
                           onClick={() => setSprintDistance(d)}
                           className={cn(
-                            'flex-1 py-2.5 rounded-xl text-sm font-medium transition-all',
+                            'py-2.5 rounded-xl text-sm font-medium transition-all',
                             sprintDistance === d ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
                           )}
-                        >{d}m</button>
+                        >{d >= 1000 ? `${(d/1000).toFixed(1)}k` : `${d}m`}</button>
                       ))}
                     </div>
                   </div>
@@ -401,18 +404,29 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   )}
                 </div>
 
-                {/* Start/Stop button */}
-                <div className="flex justify-center">
+                {/* Start/Stop/Reset buttons */}
+                <div className="flex items-center justify-center gap-4">
                   {!isSprintRunning ? (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={startSprint}
-                      className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg"
-                      style={{ background: 'linear-gradient(135deg, hsl(var(--warning)), hsl(38 92% 40%))' }}
-                    >
-                      <Play className="w-8 h-8 ml-1" />
-                    </motion.button>
+                    <>
+                      {sprintElapsed > 0 && (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => { setSprintElapsed(0); setSprintDistanceCovered(0); setSprintPositions([]); }}
+                          className="w-14 h-14 rounded-full bg-secondary border-2 border-border flex items-center justify-center"
+                        >
+                          <RotateCcw className="w-5 h-5 text-muted-foreground" />
+                        </motion.button>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={startSprint}
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, hsl(var(--warning)), hsl(38 92% 40%))' }}
+                      >
+                        <Play className="w-8 h-8 ml-1" />
+                      </motion.button>
+                    </>
                   ) : (
                     <motion.button
                       whileTap={{ scale: 0.9 }}
