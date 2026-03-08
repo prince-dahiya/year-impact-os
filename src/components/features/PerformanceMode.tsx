@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { RunMap } from './RunMap';
 import {
   Play, Pause, Square, MapPin, Clock, Flame, TrendingUp, Trophy, ArrowLeft, Activity,
-  Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer
+  Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer, RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, endOfWeek, isWithinInterval, subWeeks, getDaysInMonth } from 'date-fns';
