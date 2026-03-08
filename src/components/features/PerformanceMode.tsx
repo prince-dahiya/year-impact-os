@@ -404,18 +404,29 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   )}
                 </div>
 
-                {/* Start/Stop button */}
-                <div className="flex justify-center">
+                {/* Start/Stop/Reset buttons */}
+                <div className="flex items-center justify-center gap-4">
                   {!isSprintRunning ? (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={startSprint}
-                      className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg"
-                      style={{ background: 'linear-gradient(135deg, hsl(var(--warning)), hsl(38 92% 40%))' }}
-                    >
-                      <Play className="w-8 h-8 ml-1" />
-                    </motion.button>
+                    <>
+                      {sprintElapsed > 0 && (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => { setSprintElapsed(0); setSprintDistanceCovered(0); setSprintPositions([]); }}
+                          className="w-14 h-14 rounded-full bg-secondary border-2 border-border flex items-center justify-center"
+                        >
+                          <RotateCcw className="w-5 h-5 text-muted-foreground" />
+                        </motion.button>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={startSprint}
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, hsl(var(--warning)), hsl(38 92% 40%))' }}
+                      >
+                        <Play className="w-8 h-8 ml-1" />
+                      </motion.button>
+                    </>
                   ) : (
                     <motion.button
                       whileTap={{ scale: 0.9 }}
