@@ -377,16 +377,16 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                 {!isSprintRunning && (
                   <div>
                     <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
-                    <div className="flex gap-2">
-                      {[100, 200, 400].map(d => (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[100, 200, 400, 800, 1600, 1800].map(d => (
                         <button
                           key={d}
                           onClick={() => setSprintDistance(d)}
                           className={cn(
-                            'flex-1 py-2.5 rounded-xl text-sm font-medium transition-all',
+                            'py-2.5 rounded-xl text-sm font-medium transition-all',
                             sprintDistance === d ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
                           )}
-                        >{d}m</button>
+                        >{d >= 1000 ? `${(d/1000).toFixed(1)}k` : `${d}m`}</button>
                       ))}
                     </div>
                   </div>
