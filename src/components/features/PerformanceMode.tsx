@@ -315,7 +315,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
 
                 {/* Live Route Preview */}
                 {isRunning && positions.length >= 2 && (
-                  <RunMap route={positions} height="180px" />
+                  <RunMap route={positions} height="220px" isLive />
                 )}
 
                 <div className="flex items-center justify-center gap-5 pt-2">
