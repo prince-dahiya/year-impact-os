@@ -1,38 +1,50 @@
 import { motion } from 'framer-motion';
-import { useScores } from '@/hooks/useAppData';
-import { Rocket, BookOpen, MapPin, Flame, BarChart3 } from 'lucide-react';
+import { useScores, useRunSessions, useSprintSessions } from '@/hooks/useAppData';
+import { Rocket, MapPin, Flame, BarChart3, Activity, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export function FutureProjection({ year }: { year: number }) {
   const { yearlyScore, getStreakDays } = useScores(year);
+  const { sessions } = useRunSessions();
+  const { sprints } = useSprintSessions();
   const [show5Year, setShow5Year] = useState(false);
   const streak = getStreakDays();
   const consistency = yearlyScore.totalPercentage;
 
-  const hasData = yearlyScore.daysTracked > 0;
+  const totalKm = sessions.reduce((s: number, r: any) => s + (r.distance || 0), 0);
+  const totalCal = sessions.reduce((s: number, r: any) => s + (r.calories || 0), 0);
+  const totalRuns = sessions.length;
+
+  const hasData = yearlyScore.daysTracked > 0 || totalRuns > 0;
 
   if (!hasData) {
     return (
       <div className="glass-card p-6 text-center">
         <Rocket className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Start tracking to see future projections</p>
+        <p className="text-sm text-muted-foreground">Start tracking to see projections</p>
         <p className="text-[10px] text-muted-foreground mt-1">Based on your real activity data</p>
       </div>
     );
   }
 
-  const pagesPerDay = 20;
-  const booksPerYear = Math.round((pagesPerDay * 365 * (consistency / 100)) / 250);
-  const kmPerWeek = 5;
-  const kmPerYear = Math.round(kmPerWeek * 52 * (consistency / 100));
+  // Calculate real weekly averages from actual data
+  const daysSinceFirstRun = totalRuns > 0
+    ? Math.max(1, Math.ceil((Date.now() - new Date(sessions[0]?.date).getTime()) / 86400000))
+    : 1;
+  const weeksSoFar = Math.max(1, daysSinceFirstRun / 7);
+  const kmPerWeek = totalKm / weeksSoFar;
+  const calPerWeek = totalCal / weeksSoFar;
+  const runsPerWeek = totalRuns / weeksSoFar;
 
   const multiplier = show5Year ? 5 : 1;
+  const weeksInYear = 52;
+
   const projections = [
-    { icon: <BookOpen className="w-5 h-5" />, label: 'Books Read', value: booksPerYear * multiplier, suffix: '', color: 'text-info' },
-    { icon: <MapPin className="w-5 h-5" />, label: 'KM Covered', value: kmPerYear * multiplier, suffix: 'km', color: 'text-primary' },
-    { icon: <Flame className="w-5 h-5" />, label: 'Streak Potential', value: Math.min(streak * multiplier, 365 * multiplier), suffix: 'd', color: 'text-warning' },
-    { icon: <BarChart3 className="w-5 h-5" />, label: 'Yearly Completion', value: Math.min(consistency, 100), suffix: '%', color: 'text-primary' },
+    { icon: <MapPin className="w-5 h-5" />, label: 'KM Projected', value: Math.round(kmPerWeek * weeksInYear * multiplier), suffix: 'km', color: 'text-primary' },
+    { icon: <Flame className="w-5 h-5" />, label: 'Calories Projected', value: Math.round(calPerWeek * weeksInYear * multiplier), suffix: '', color: 'text-warning' },
+    { icon: <Activity className="w-5 h-5" />, label: 'Runs Projected', value: Math.round(runsPerWeek * weeksInYear * multiplier), suffix: '', color: 'text-info' },
+    { icon: <Zap className="w-5 h-5" />, label: 'Sprints Projected', value: Math.round((sprints.length / weeksSoFar) * weeksInYear * multiplier), suffix: '', color: 'text-warning' },
   ];
 
   return (
@@ -43,8 +55,8 @@ export function FutureProjection({ year }: { year: number }) {
             <Rocket className="w-5 h-5 text-info" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">If you continue like this…</h3>
-            <p className="text-xs text-muted-foreground">Based on your real progress</p>
+            <h3 className="font-semibold text-sm">At this pace…</h3>
+            <p className="text-xs text-muted-foreground">Projected from real activity</p>
           </div>
         </div>
         <button
@@ -69,17 +81,21 @@ export function FutureProjection({ year }: { year: number }) {
           >
             <div className={cn('mb-1', p.color)}>{p.icon}</div>
             <motion.span
-              className="font-mono font-bold text-2xl gradient-text"
+              className="font-mono font-bold text-2xl gradient-text block"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ type: 'spring', stiffness: 100 }}
             >
-              {Math.round(p.value)}{p.suffix}
+              {p.value}{p.suffix}
             </motion.span>
             <p className="text-xs text-muted-foreground">{p.label}</p>
           </motion.div>
         ))}
       </div>
+
+      <p className="text-[10px] text-muted-foreground text-center">
+        Based on {kmPerWeek.toFixed(1)} km/week · {runsPerWeek.toFixed(1)} runs/week average
+      </p>
     </motion.div>
   );
 }
