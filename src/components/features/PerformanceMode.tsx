@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRunSessions, useSprintSessions, useChallenges, usePoints } from '@/hooks/useAppData';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RunMap } from './RunMap';
 import {
   Play, Pause, Square, MapPin, Clock, Flame, TrendingUp, Trophy, ArrowLeft, Activity,
   Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer
@@ -61,6 +61,7 @@ const CHALLENGE_TEMPLATES = [
 ];
 
 export function PerformanceMode({ onBack }: { onBack: () => void }) {
+  // Run state
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -75,11 +76,20 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPos = useRef<GeolocationPosition | null>(null);
 
-  // Sprint state
+  // Sprint state - auto timer
   const [sprintDistance, setSprintDistance] = useState(100);
-  const [sprintTime, setSprintTime] = useState('');
-  const [showChallengeDialog, setShowChallengeDialog] = useState(false);
+  const [isSprintRunning, setIsSprintRunning] = useState(false);
+  const [sprintElapsed, setSprintElapsed] = useState(0);
+  const [sprintPositions, setSprintPositions] = useState<[number, number][]>([]);
+  const sprintTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sprintWatchRef = useRef<number | null>(null);
+  const sprintLastPos = useRef<GeolocationPosition | null>(null);
+  const [sprintDistanceCovered, setSprintDistanceCovered] = useState(0);
 
+  const [showChallengeDialog, setShowChallengeDialog] = useState(false);
+  const [expandedRun, setExpandedRun] = useState<string | null>(null);
+
+  // --- RUN CONTROLS ---
   const startRun = useCallback(() => {
     setIsRunning(true); setIsPaused(false); setElapsed(0); setDistance(0); setPositions([]); lastPos.current = null;
     timerRef.current = setInterval(() => setElapsed(p => p + 1), 1000);
@@ -95,7 +105,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
           lastPos.current = pos;
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }
   }, []);
@@ -108,9 +118,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
       const avgPace = elapsed > 0 && distance > 0 ? (elapsed / 60) / distance : 0;
       const calories = Math.round(distance * 60);
       addSession({ date: new Date().toISOString(), distance: Math.round(distance * 100) / 100, duration: elapsed, avgPace: Math.round(avgPace * 100) / 100, calories, route: positions, type: 'run' });
-      // Award points
       addPoints(Math.round(distance * 10), `Run ${distance.toFixed(2)}km`);
-      // Update challenges
       challenges.forEach(c => {
         if (c.completed) return;
         if (c.type === 'distance') updateProgress(c.id, c.current + distance);
@@ -125,15 +133,56 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
     else { if (timerRef.current) clearInterval(timerRef.current); setIsPaused(true); }
   };
 
-  const handleSprintSubmit = () => {
-    const time = parseFloat(sprintTime);
-    if (!time || time <= 0) return;
-    const distKm = sprintDistance / 1000;
-    const speed = Math.round((distKm / (time / 3600)) * 10) / 10;
-    addSprint({ date: new Date().toISOString(), distance: sprintDistance, duration: time, speed });
-    addPoints(Math.round(sprintDistance / 10), `Sprint ${sprintDistance}m in ${time}s`);
-    setSprintTime('');
-  };
+  // --- SPRINT AUTO-TIMER ---
+  const startSprint = useCallback(() => {
+    setIsSprintRunning(true);
+    setSprintElapsed(0);
+    setSprintDistanceCovered(0);
+    setSprintPositions([]);
+    sprintLastPos.current = null;
+
+    sprintTimerRef.current = setInterval(() => setSprintElapsed(p => p + 0.1), 100);
+
+    if ('geolocation' in navigator) {
+      sprintWatchRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setSprintPositions(prev => [...prev, [latitude, longitude]]);
+          if (sprintLastPos.current) {
+            const d = haversine(sprintLastPos.current.coords.latitude, sprintLastPos.current.coords.longitude, latitude, longitude);
+            if (d > 0.001) setSprintDistanceCovered(prev => prev + d * 1000); // meters
+          }
+          sprintLastPos.current = pos;
+        },
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+      );
+    }
+  }, []);
+
+  const stopSprint = useCallback(() => {
+    if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
+    if (sprintWatchRef.current !== null) navigator.geolocation.clearWatch(sprintWatchRef.current);
+    setIsSprintRunning(false);
+
+    const time = Math.round(sprintElapsed * 10) / 10;
+    if (time > 0.5) {
+      const actualDistance = sprintDistanceCovered > 10 ? Math.round(sprintDistanceCovered) : sprintDistance;
+      const distKm = actualDistance / 1000;
+      const speed = Math.round((distKm / (time / 3600)) * 10) / 10;
+      addSprint({ date: new Date().toISOString(), distance: actualDistance, duration: time, speed });
+      addPoints(Math.round(actualDistance / 10), `Sprint ${actualDistance}m in ${time}s`);
+    }
+  }, [sprintElapsed, sprintDistance, sprintDistanceCovered, addSprint, addPoints]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+      if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
+      if (sprintWatchRef.current !== null) navigator.geolocation.clearWatch(sprintWatchRef.current);
+    };
+  }, []);
 
   const handleCreateChallenge = (template: typeof CHALLENGE_TEMPLATES[0]) => {
     const now = new Date();
@@ -142,16 +191,9 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
     setShowChallengeDialog(false);
   };
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
-    };
-  }, []);
-
+  // Computed values
   const avgPace = elapsed > 0 && distance > 0 ? (elapsed / 60) / distance : 0;
   const calories = Math.round(distance * 60);
-
   const now = new Date();
   const currentMonth = now.getMonth();
   const monthSessions = sessions.filter((s: any) => new Date(s.date).getMonth() === currentMonth);
@@ -195,9 +237,8 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const lockedAchievements = ACHIEVEMENTS.filter(a => !a.check(sessions));
 
   const getSprintFeedback = (dist: number, time: number) => {
-    const bench = SPRINT_BENCHMARKS.find(b => b.distance === dist);
-    if (!bench) return { level: 'Unknown', color: 'text-muted-foreground', tip: '' };
-    if (time <= bench.elite) return { level: 'Elite', color: 'text-primary', tip: 'Outstanding! You\'re at professional level.' };
+    const bench = SPRINT_BENCHMARKS.find(b => b.distance === dist) || SPRINT_BENCHMARKS[0];
+    if (time <= bench.elite) return { level: 'Elite', color: 'text-primary', tip: 'Outstanding! Professional level speed.' };
     if (time <= bench.good) return { level: 'Good', color: 'text-info', tip: 'Solid performance. Push for consistency.' };
     if (time <= bench.average) return { level: 'Average', color: 'text-warning', tip: 'Good start. Focus on explosive starts.' };
     return { level: 'Needs Work', color: 'text-destructive', tip: 'Keep training. Speed comes with practice.' };
@@ -271,6 +312,12 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   <div><TrendingUp className="w-4 h-4 text-primary mx-auto mb-1" /><p className="font-mono font-bold text-lg">{avgPace > 0 ? formatPace(avgPace) : '--:--'}</p><p className="text-[10px] text-muted-foreground">Pace</p></div>
                   <div><Flame className="w-4 h-4 text-warning mx-auto mb-1" /><p className="font-mono font-bold text-lg">{calories}</p><p className="text-[10px] text-muted-foreground">Cal</p></div>
                 </div>
+
+                {/* Live Route Preview */}
+                {isRunning && positions.length >= 2 && (
+                  <RunMap route={positions} height="180px" />
+                )}
+
                 <div className="flex items-center justify-center gap-5 pt-2">
                   {!isRunning ? (
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startRun}
@@ -309,7 +356,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
             </motion.div>
           )}
 
-          {/* SPRINT TAB */}
+          {/* SPRINT TAB - Auto Timer */}
           {tab === 'sprint' && (
             <motion.div key="sprint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
               <div className="glass-card p-6 space-y-5">
@@ -319,13 +366,14 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">Sprint Tracker</h3>
-                    <p className="text-xs text-muted-foreground">Log your sprint time and get feedback</p>
+                    <p className="text-xs text-muted-foreground">Auto-timed · GPS distance tracking</p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                {/* Distance selector */}
+                {!isSprintRunning && (
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Distance</label>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
                     <div className="flex gap-2">
                       {[100, 200, 400].map(d => (
                         <button
@@ -339,44 +387,75 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Time (seconds)</label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      placeholder="e.g. 12.5"
-                      value={sprintTime}
-                      onChange={e => setSprintTime(e.target.value)}
-                      className="bg-secondary h-11 text-center text-lg font-mono"
-                    />
-                  </div>
-                  <Button onClick={handleSprintSubmit} className="w-full h-11" disabled={!sprintTime}>
-                    <Timer className="w-4 h-4 mr-2" /> Log Sprint
-                  </Button>
+                )}
+
+                {/* Timer display */}
+                <div className="text-center space-y-3">
+                  <p className="text-5xl font-bold font-mono gradient-text">
+                    {sprintElapsed.toFixed(1)}<span className="text-lg text-muted-foreground ml-1">s</span>
+                  </p>
+                  {isSprintRunning && sprintDistanceCovered > 0 && (
+                    <p className="text-sm text-muted-foreground font-mono">
+                      {Math.round(sprintDistanceCovered)}m covered
+                    </p>
+                  )}
                 </div>
 
-                {/* Benchmarks */}
-                <div className="p-4 rounded-xl bg-secondary/40 space-y-2">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Benchmark for {sprintDistance}m</p>
-                  {(() => {
-                    const bench = SPRINT_BENCHMARKS.find(b => b.distance === sprintDistance);
-                    if (!bench) return null;
-                    return (
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div><p className="text-xs text-primary font-medium">Elite</p><p className="font-mono font-bold">{bench.elite}s</p></div>
-                        <div><p className="text-xs text-info font-medium">Good</p><p className="font-mono font-bold">{bench.good}s</p></div>
-                        <div><p className="text-xs text-warning font-medium">Average</p><p className="font-mono font-bold">{bench.average}s</p></div>
-                      </div>
-                    );
-                  })()}
+                {/* Start/Stop button */}
+                <div className="flex justify-center">
+                  {!isSprintRunning ? (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={startSprint}
+                      className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg"
+                      style={{ background: 'linear-gradient(135deg, hsl(var(--warning)), hsl(38 92% 40%))' }}
+                    >
+                      <Play className="w-8 h-8 ml-1" />
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={stopSprint}
+                      className="w-20 h-20 rounded-full bg-destructive/20 border-2 border-destructive/50 flex items-center justify-center"
+                    >
+                      <Square className="w-8 h-8 text-destructive" />
+                    </motion.button>
+                  )}
                 </div>
+
+                {isSprintRunning && (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                    <span className="text-xs text-muted-foreground">Sprint in progress — tap stop when finished</span>
+                  </div>
+                )}
+
+                {/* Benchmarks */}
+                {!isSprintRunning && (
+                  <div className="p-4 rounded-xl bg-secondary/40 space-y-2">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Benchmark for {sprintDistance}m</p>
+                    {(() => {
+                      const bench = SPRINT_BENCHMARKS.find(b => b.distance === sprintDistance);
+                      if (!bench) return null;
+                      return (
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div><p className="text-xs text-primary font-medium">Elite</p><p className="font-mono font-bold">{bench.elite}s</p></div>
+                          <div><p className="text-xs text-info font-medium">Good</p><p className="font-mono font-bold">{bench.good}s</p></div>
+                          <div><p className="text-xs text-warning font-medium">Average</p><p className="font-mono font-bold">{bench.average}s</p></div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Sprint History */}
               {sprints.length === 0 ? (
                 <div className="glass-card p-8 text-center">
                   <Zap className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No sprints logged yet</p>
+                  <p className="text-sm text-muted-foreground">No sprints recorded yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Tap start, sprint, then stop to log automatically</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -389,7 +468,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                           <div className="flex items-center gap-2">
                             <Zap className="w-3.5 h-3.5 text-warning" />
                             <span className="text-sm font-medium">{s.distance}m</span>
-                            <span className={cn('text-xs font-medium', feedback.color)}>{feedback.level}</span>
+                            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full bg-secondary', feedback.color)}>{feedback.level}</span>
                           </div>
                           <span className="text-xs text-muted-foreground">{format(new Date(s.date), 'MMM d')}</span>
                         </div>
@@ -403,7 +482,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                             <p className="text-[10px] text-muted-foreground">km/h</p>
                           </div>
                           <div className="p-2 rounded-lg bg-secondary/40">
-                            <p className="text-[10px] text-muted-foreground mt-1">{feedback.tip.slice(0, 30)}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">{feedback.tip.slice(0, 40)}</p>
                           </div>
                         </div>
                       </div>
@@ -432,7 +511,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
             </motion.div>
           )}
 
-          {/* HISTORY TAB */}
+          {/* HISTORY TAB - with route maps */}
           {tab === 'history' && (
             <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="glass-card p-4 space-y-3">
@@ -462,40 +541,68 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
               {sessions.length === 0 ? (
                 <div className="glass-card p-10 text-center">
                   <MapPin className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">No runs yet. Start your first run!</p>
+                  <p className="text-sm text-muted-foreground">No runs recorded yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Start your first run to see history</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {sessions.slice().reverse().map((s: any) => (
-                    <div key={s.id} className="glass-card p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Activity className="w-3.5 h-3.5 text-primary" />
+                  {sessions.slice().reverse().map((s: any) => {
+                    const isExpanded = expandedRun === s.id;
+                    return (
+                      <div key={s.id} className="glass-card overflow-hidden">
+                        <button
+                          className="w-full p-4 text-left"
+                          onClick={() => setExpandedRun(isExpanded ? null : s.id)}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Activity className="w-3.5 h-3.5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{format(new Date(s.date), 'MMM d, yyyy')}</p>
+                                <p className="text-[10px] text-muted-foreground">{format(new Date(s.date), 'h:mm a')}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-muted-foreground font-mono">{formatTime(s.duration)}</span>
+                              {s.route && s.route.length >= 2 && (
+                                <p className="text-[10px] text-primary">📍 Route available</p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">{format(new Date(s.date), 'MMM d, yyyy')}</p>
-                            <p className="text-[10px] text-muted-foreground">{format(new Date(s.date), 'h:mm a')}</p>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <p className="font-mono font-bold text-primary">{s.distance.toFixed(2)}</p>
+                              <p className="text-[10px] text-muted-foreground">km</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <p className="font-mono font-bold">{formatPace(s.avgPace)}</p>
+                              <p className="text-[10px] text-muted-foreground">min/km</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <p className="font-mono font-bold">{s.calories}</p>
+                              <p className="text-[10px] text-muted-foreground">cal</p>
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-xs text-muted-foreground font-mono">{formatTime(s.duration)}</span>
+                        </button>
+                        <AnimatePresence>
+                          {isExpanded && s.route && s.route.length >= 2 && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="px-4 pb-4">
+                                <RunMap route={s.route} height="220px" />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="text-center p-2 rounded-lg bg-secondary/40">
-                          <p className="font-mono font-bold text-primary">{s.distance.toFixed(2)}</p>
-                          <p className="text-[10px] text-muted-foreground">km</p>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-secondary/40">
-                          <p className="font-mono font-bold">{formatPace(s.avgPace)}</p>
-                          <p className="text-[10px] text-muted-foreground">min/km</p>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-secondary/40">
-                          <p className="font-mono font-bold">{s.calories}</p>
-                          <p className="text-[10px] text-muted-foreground">cal</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </motion.div>

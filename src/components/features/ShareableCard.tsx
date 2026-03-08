@@ -12,8 +12,14 @@ export function ShareableCard({ year }: { year: number }) {
   const { user } = useAuth();
   const { yearlyScore, getStreakDays } = useScores(year);
   const streak = getStreakDays();
-  const dayOfYear = Math.floor((Date.now() - new Date(year, 0, 1).getTime()) / (1000 * 60 * 60 * 24));
-  const yearProgress = Math.round((dayOfYear / 365) * 100);
+
+  // Activity-based progress: percentage of year where user was active
+  const totalDaysInYear = 365;
+  const activityProgress = yearlyScore.daysTracked > 0
+    ? Math.round((yearlyScore.daysTracked / totalDaysInYear) * 100)
+    : 0;
+
+  const hasData = yearlyScore.daysTracked > 0 || streak > 0;
 
   const handleDownload = async () => {
     if (!cardRef.current) return;
@@ -45,6 +51,16 @@ export function ShareableCard({ year }: { year: number }) {
     }
   };
 
+  if (!hasData) {
+    return (
+      <div className="glass-card p-8 text-center">
+        <Award className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">Start tracking to generate your Impact Card</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Complete daily actions or runs to unlock</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -67,7 +83,6 @@ export function ShareableCard({ year }: { year: number }) {
           border: '1px solid rgba(16, 185, 129, 0.2)'
         }}
       >
-        {/* Glow effect */}
         <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-20"
           style={{ background: 'radial-gradient(circle, hsl(155 100% 45%), transparent)' }} />
 
@@ -97,11 +112,11 @@ export function ShareableCard({ year }: { year: number }) {
 
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs" style={{ color: '#94a3b8' }}>
-              <span>Year Progress</span>
-              <span>{yearProgress}%</span>
+              <span>Activity Progress</span>
+              <span>{activityProgress}%</span>
             </div>
             <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
-              <div className="h-full rounded-full" style={{ width: `${yearProgress}%`, background: 'linear-gradient(90deg, hsl(155 100% 45%), hsl(170 80% 40%))' }} />
+              <div className="h-full rounded-full" style={{ width: `${activityProgress}%`, background: 'linear-gradient(90deg, hsl(155 100% 45%), hsl(170 80% 40%))' }} />
             </div>
           </div>
 
