@@ -51,6 +51,9 @@ const SPRINT_BENCHMARKS = [
   { distance: 100, elite: 10, good: 13, average: 16, label: '100m' },
   { distance: 200, elite: 20, good: 26, average: 32, label: '200m' },
   { distance: 400, elite: 45, good: 58, average: 75, label: '400m' },
+  { distance: 800, elite: 102, good: 130, average: 170, label: '800m' },
+  { distance: 1600, elite: 230, good: 300, average: 400, label: '1600m' },
+  { distance: 1800, elite: 270, good: 345, average: 460, label: '1800m' },
 ];
 
 const CHALLENGE_TEMPLATES = [
