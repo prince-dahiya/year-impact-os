@@ -70,6 +70,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
   const [positions, setPositions] = useState<[number, number][]>([]);
+  const [heading, setHeading] = useState<number | null>(null);
   const [tab, setTab] = useState<'run' | 'sprint' | 'history' | 'analytics' | 'challenges' | 'leaderboard' | 'achievements'>('run');
   const { sessions, addSession } = useRunSessions();
   const { sprints, addSprint } = useSprintSessions();
