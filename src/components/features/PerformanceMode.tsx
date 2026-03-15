@@ -503,9 +503,25 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                 </div>
 
                 {isSprintRunning && (
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                    <span className="text-xs text-muted-foreground">Sprint in progress — tap stop when finished</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                      <span className="text-xs text-muted-foreground">
+                        {sprintUseGPS
+                          ? `GPS tracking — auto-stops at ${sprintDistance}m`
+                          : 'Manual mode — tap stop when finished'}
+                      </span>
+                    </div>
+                    {sprintUseGPS && (
+                      <div className="h-2 bg-muted rounded-full overflow-hidden mx-4">
+                        <motion.div
+                          className="h-full bg-warning rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((sprintDistanceCovered / sprintDistance) * 100, 100)}%` }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
