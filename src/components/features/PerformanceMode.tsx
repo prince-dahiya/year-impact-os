@@ -140,23 +140,58 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   };
 
   // --- SPRINT AUTO-TIMER ---
+  const sprintDistanceRef = useRef(sprintDistance);
+  const sprintUseGPSRef = useRef(sprintUseGPS);
+  const sprintElapsedRef = useRef(0);
+  const sprintDistCoveredRef = useRef(0);
+
+  useEffect(() => { sprintDistanceRef.current = sprintDistance; }, [sprintDistance]);
+  useEffect(() => { sprintUseGPSRef.current = sprintUseGPS; }, [sprintUseGPS]);
+
+  const finishSprint = useCallback((finalTime: number, finalDist: number) => {
+    if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
+    if (sprintWatchRef.current !== null) navigator.geolocation.clearWatch(sprintWatchRef.current);
+    setIsSprintRunning(false);
+
+    const time = Math.round(finalTime * 10) / 10;
+    if (time > 0.5) {
+      const actualDistance = finalDist > 10 ? Math.round(finalDist) : sprintDistanceRef.current;
+      const distKm = actualDistance / 1000;
+      const speed = Math.round((distKm / (time / 3600)) * 10) / 10;
+      addSprint({ date: new Date().toISOString(), distance: actualDistance, duration: time, speed });
+      addPoints(Math.round(actualDistance / 10), `Sprint ${actualDistance}m in ${time}s`);
+    }
+  }, [addSprint, addPoints]);
+
   const startSprint = useCallback(() => {
     setIsSprintRunning(true);
     setSprintElapsed(0);
     setSprintDistanceCovered(0);
     setSprintPositions([]);
     sprintLastPos.current = null;
+    sprintElapsedRef.current = 0;
+    sprintDistCoveredRef.current = 0;
 
-    sprintTimerRef.current = setInterval(() => setSprintElapsed(p => p + 0.1), 100);
+    sprintTimerRef.current = setInterval(() => {
+      sprintElapsedRef.current += 0.1;
+      setSprintElapsed(sprintElapsedRef.current);
+    }, 100);
 
-    if ('geolocation' in navigator) {
+    if (sprintUseGPSRef.current && 'geolocation' in navigator) {
       sprintWatchRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
           setSprintPositions(prev => [...prev, [latitude, longitude]]);
           if (sprintLastPos.current) {
             const d = haversine(sprintLastPos.current.coords.latitude, sprintLastPos.current.coords.longitude, latitude, longitude);
-            if (d > 0.001) setSprintDistanceCovered(prev => prev + d * 1000); // meters
+            if (d > 0.001) {
+              sprintDistCoveredRef.current += d * 1000;
+              setSprintDistanceCovered(sprintDistCoveredRef.current);
+              // Auto-stop when target distance reached
+              if (sprintDistCoveredRef.current >= sprintDistanceRef.current) {
+                finishSprint(sprintElapsedRef.current, sprintDistCoveredRef.current);
+              }
+            }
           }
           sprintLastPos.current = pos;
         },
@@ -164,21 +199,11 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
         { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
       );
     }
-  }, []);
+  }, [finishSprint]);
 
   const stopSprint = useCallback(() => {
-    if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
-    if (sprintWatchRef.current !== null) navigator.geolocation.clearWatch(sprintWatchRef.current);
-    setIsSprintRunning(false);
-
-    const time = Math.round(sprintElapsed * 10) / 10;
-    if (time > 0.5) {
-      const actualDistance = sprintDistanceCovered > 10 ? Math.round(sprintDistanceCovered) : sprintDistance;
-      const distKm = actualDistance / 1000;
-      const speed = Math.round((distKm / (time / 3600)) * 10) / 10;
-      addSprint({ date: new Date().toISOString(), distance: actualDistance, duration: time, speed });
-      addPoints(Math.round(actualDistance / 10), `Sprint ${actualDistance}m in ${time}s`);
-    }
+    finishSprint(sprintElapsedRef.current, sprintDistCoveredRef.current);
+  }, [finishSprint]);
   }, [sprintElapsed, sprintDistance, sprintDistanceCovered, addSprint, addPoints]);
 
   useEffect(() => {
