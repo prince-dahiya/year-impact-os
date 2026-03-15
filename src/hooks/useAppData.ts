@@ -113,7 +113,11 @@ export function useSprintSessions() {
     setSessions(prev => [...prev, { ...sprint, id: crypto.randomUUID() }]);
   }, [setSessions]);
 
-  return { sprints: sessions, addSprint };
+  const deleteSprint = useCallback((id: string) => {
+    setSessions(prev => prev.filter(s => s.id !== id));
+  }, [setSessions]);
+
+  return { sprints: sessions, addSprint, deleteSprint };
 }
 
 export function useChallenges() {
