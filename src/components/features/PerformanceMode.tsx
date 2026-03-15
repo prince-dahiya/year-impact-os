@@ -561,10 +561,18 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Zap className="w-3.5 h-3.5 text-warning" />
-                            <span className="text-sm font-medium">{s.distance}m</span>
+                            <span className="text-sm font-medium">{s.distance >= 1000 ? `${(s.distance/1000).toFixed(1)}k` : `${s.distance}m`}</span>
                             <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full bg-secondary', feedback.color)}>{feedback.level}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground">{format(new Date(s.date), 'MMM d')}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{format(new Date(s.date), 'MMM d')}</span>
+                            <button
+                              onClick={() => deleteSprint(s.id)}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Square className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                         <div className="grid grid-cols-3 gap-3 text-center">
                           <div className="p-2 rounded-lg bg-secondary/40">
