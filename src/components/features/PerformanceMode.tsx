@@ -318,9 +318,9 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   <div><Flame className="w-4 h-4 text-warning mx-auto mb-1" /><p className="font-mono font-bold text-lg">{calories}</p><p className="text-[10px] text-muted-foreground">Cal</p></div>
                 </div>
 
-                {/* Live Route Preview */}
-                {isRunning && positions.length >= 2 && (
-                  <RunMap route={positions} height="220px" isLive />
+                {/* Live Route Preview - shows immediately */}
+                {isRunning && (
+                  <RunMap route={positions} height="250px" isLive heading={heading} />
                 )}
 
                 <div className="flex items-center justify-center gap-5 pt-2">
