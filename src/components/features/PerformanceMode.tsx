@@ -570,7 +570,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                               onClick={() => deleteSprint(s.id)}
                               className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                             >
-                              <Square className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
