@@ -100,8 +100,9 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
     if ('geolocation' in navigator) {
       watchId.current = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude, longitude } = pos.coords;
+          const { latitude, longitude, heading: h } = pos.coords;
           setPositions(prev => [...prev, [latitude, longitude]]);
+          if (h !== null && !isNaN(h)) setHeading(h);
           if (lastPos.current) {
             const d = haversine(lastPos.current.coords.latitude, lastPos.current.coords.longitude, latitude, longitude);
             if (d > 0.005) setDistance(prev => prev + d);
