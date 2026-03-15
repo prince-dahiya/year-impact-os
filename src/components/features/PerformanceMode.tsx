@@ -577,8 +577,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                       <div key={s.id} className="glass-card overflow-hidden">
                         <button
                           className="w-full p-4 text-left"
-                          onClick={() => setExpandedRun(isExpanded ? null : s.id)}
-                        >
+                        <div className="w-full p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -586,45 +585,40 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                               </div>
                               <div>
                                 <p className="text-sm font-medium">{format(new Date(s.date), 'MMM d, yyyy')}</p>
-                                <p className="text-[10px] text-muted-foreground">{format(new Date(s.date), 'h:mm a')}</p>
+                                <p className="text-[10px] text-muted-foreground">{format(new Date(s.date), 'h:mm a')} · {formatTime(s.duration)}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className="text-xs text-muted-foreground font-mono">{formatTime(s.duration)}</span>
-                              {s.route && s.route.length >= 2 && (
-                                <p className="text-[10px] text-primary">📍 Route available</p>
-                              )}
+                          </div>
+                          <div className="grid grid-cols-4 gap-2 mb-3">
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <MapPin className="w-3 h-3 text-primary mx-auto mb-0.5" />
+                              <p className="font-mono font-bold text-sm text-primary">{s.distance.toFixed(2)}</p>
+                              <p className="text-[9px] text-muted-foreground">km</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <TrendingUp className="w-3 h-3 text-info mx-auto mb-0.5" />
+                              <p className="font-mono font-bold text-sm">{formatPace(s.avgPace)}</p>
+                              <p className="text-[9px] text-muted-foreground">min/km</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <Flame className="w-3 h-3 text-warning mx-auto mb-0.5" />
+                              <p className="font-mono font-bold text-sm">{s.calories}</p>
+                              <p className="text-[9px] text-muted-foreground">cal</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-secondary/40">
+                              <Clock className="w-3 h-3 text-muted-foreground mx-auto mb-0.5" />
+                              <p className="font-mono font-bold text-sm">{formatTime(s.duration)}</p>
+                              <p className="text-[9px] text-muted-foreground">time</p>
                             </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-3">
-                            <div className="text-center p-2 rounded-lg bg-secondary/40">
-                              <p className="font-mono font-bold text-primary">{s.distance.toFixed(2)}</p>
-                              <p className="text-[10px] text-muted-foreground">km</p>
+                          {s.route && s.route.length >= 2 ? (
+                            <RunMap route={s.route} height="180px" />
+                          ) : (
+                            <div className="rounded-xl bg-secondary/40 flex items-center justify-center text-xs text-muted-foreground h-16">
+                              No GPS route recorded
                             </div>
-                            <div className="text-center p-2 rounded-lg bg-secondary/40">
-                              <p className="font-mono font-bold">{formatPace(s.avgPace)}</p>
-                              <p className="text-[10px] text-muted-foreground">min/km</p>
-                            </div>
-                            <div className="text-center p-2 rounded-lg bg-secondary/40">
-                              <p className="font-mono font-bold">{s.calories}</p>
-                              <p className="text-[10px] text-muted-foreground">cal</p>
-                            </div>
-                          </div>
-                        </button>
-                        <AnimatePresence>
-                          {isExpanded && s.route && s.route.length >= 2 && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="px-4 pb-4">
-                                <RunMap route={s.route} height="220px" />
-                              </div>
-                            </motion.div>
                           )}
-                        </AnimatePresence>
+                        </div>
                       </div>
                     );
                   })}
