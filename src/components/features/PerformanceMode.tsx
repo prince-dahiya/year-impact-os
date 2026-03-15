@@ -89,6 +89,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const sprintWatchRef = useRef<number | null>(null);
   const sprintLastPos = useRef<GeolocationPosition | null>(null);
   const [sprintDistanceCovered, setSprintDistanceCovered] = useState(0);
+  const [sprintUseGPS, setSprintUseGPS] = useState(true);
 
   const [showChallengeDialog, setShowChallengeDialog] = useState(false);
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
