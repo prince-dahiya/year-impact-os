@@ -204,7 +204,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const stopSprint = useCallback(() => {
     finishSprint(sprintElapsedRef.current, sprintDistCoveredRef.current);
   }, [finishSprint]);
-  }, [sprintElapsed, sprintDistance, sprintDistanceCovered, addSprint, addPoints]);
+  
 
   useEffect(() => {
     return () => {
