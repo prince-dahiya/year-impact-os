@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { RunMap } from './RunMap';
 import {
   Play, Pause, Square, MapPin, Clock, Flame, TrendingUp, Trophy, ArrowLeft, Activity,
-  Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer, RotateCcw
+  Award, BarChart3, Calendar, Zap, Star, Plus, Target, Timer, RotateCcw, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, endOfWeek, isWithinInterval, subWeeks, getDaysInMonth } from 'date-fns';
@@ -73,7 +73,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const [heading, setHeading] = useState<number | null>(null);
   const [tab, setTab] = useState<'run' | 'sprint' | 'history' | 'analytics' | 'challenges' | 'leaderboard' | 'achievements'>('run');
   const { sessions, addSession } = useRunSessions();
-  const { sprints, addSprint } = useSprintSessions();
+  const { sprints, addSprint, deleteSprint } = useSprintSessions();
   const { challenges, createChallenge, updateProgress, deleteChallenge } = useChallenges();
   const { points, addPoints } = usePoints();
   const watchId = useRef<number | null>(null);
@@ -89,6 +89,7 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   const sprintWatchRef = useRef<number | null>(null);
   const sprintLastPos = useRef<GeolocationPosition | null>(null);
   const [sprintDistanceCovered, setSprintDistanceCovered] = useState(0);
+  const [sprintUseGPS, setSprintUseGPS] = useState(true);
 
   const [showChallengeDialog, setShowChallengeDialog] = useState(false);
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
@@ -139,23 +140,58 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
   };
 
   // --- SPRINT AUTO-TIMER ---
+  const sprintDistanceRef = useRef(sprintDistance);
+  const sprintUseGPSRef = useRef(sprintUseGPS);
+  const sprintElapsedRef = useRef(0);
+  const sprintDistCoveredRef = useRef(0);
+
+  useEffect(() => { sprintDistanceRef.current = sprintDistance; }, [sprintDistance]);
+  useEffect(() => { sprintUseGPSRef.current = sprintUseGPS; }, [sprintUseGPS]);
+
+  const finishSprint = useCallback((finalTime: number, finalDist: number) => {
+    if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
+    if (sprintWatchRef.current !== null) navigator.geolocation.clearWatch(sprintWatchRef.current);
+    setIsSprintRunning(false);
+
+    const time = Math.round(finalTime * 10) / 10;
+    if (time > 0.5) {
+      const actualDistance = finalDist > 10 ? Math.round(finalDist) : sprintDistanceRef.current;
+      const distKm = actualDistance / 1000;
+      const speed = Math.round((distKm / (time / 3600)) * 10) / 10;
+      addSprint({ date: new Date().toISOString(), distance: actualDistance, duration: time, speed });
+      addPoints(Math.round(actualDistance / 10), `Sprint ${actualDistance}m in ${time}s`);
+    }
+  }, [addSprint, addPoints]);
+
   const startSprint = useCallback(() => {
     setIsSprintRunning(true);
     setSprintElapsed(0);
     setSprintDistanceCovered(0);
     setSprintPositions([]);
     sprintLastPos.current = null;
+    sprintElapsedRef.current = 0;
+    sprintDistCoveredRef.current = 0;
 
-    sprintTimerRef.current = setInterval(() => setSprintElapsed(p => p + 0.1), 100);
+    sprintTimerRef.current = setInterval(() => {
+      sprintElapsedRef.current += 0.1;
+      setSprintElapsed(sprintElapsedRef.current);
+    }, 100);
 
-    if ('geolocation' in navigator) {
+    if (sprintUseGPSRef.current && 'geolocation' in navigator) {
       sprintWatchRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
           setSprintPositions(prev => [...prev, [latitude, longitude]]);
           if (sprintLastPos.current) {
             const d = haversine(sprintLastPos.current.coords.latitude, sprintLastPos.current.coords.longitude, latitude, longitude);
-            if (d > 0.001) setSprintDistanceCovered(prev => prev + d * 1000); // meters
+            if (d > 0.001) {
+              sprintDistCoveredRef.current += d * 1000;
+              setSprintDistanceCovered(sprintDistCoveredRef.current);
+              // Auto-stop when target distance reached
+              if (sprintDistCoveredRef.current >= sprintDistanceRef.current) {
+                finishSprint(sprintElapsedRef.current, sprintDistCoveredRef.current);
+              }
+            }
           }
           sprintLastPos.current = pos;
         },
@@ -163,22 +199,12 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
         { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
       );
     }
-  }, []);
+  }, [finishSprint]);
 
   const stopSprint = useCallback(() => {
-    if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
-    if (sprintWatchRef.current !== null) navigator.geolocation.clearWatch(sprintWatchRef.current);
-    setIsSprintRunning(false);
-
-    const time = Math.round(sprintElapsed * 10) / 10;
-    if (time > 0.5) {
-      const actualDistance = sprintDistanceCovered > 10 ? Math.round(sprintDistanceCovered) : sprintDistance;
-      const distKm = actualDistance / 1000;
-      const speed = Math.round((distKm / (time / 3600)) * 10) / 10;
-      addSprint({ date: new Date().toISOString(), distance: actualDistance, duration: time, speed });
-      addPoints(Math.round(actualDistance / 10), `Sprint ${actualDistance}m in ${time}s`);
-    }
-  }, [sprintElapsed, sprintDistance, sprintDistanceCovered, addSprint, addPoints]);
+    finishSprint(sprintElapsedRef.current, sprintDistCoveredRef.current);
+  }, [finishSprint]);
+  
 
   useEffect(() => {
     return () => {
@@ -386,21 +412,46 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   </div>
                 </div>
 
-                {/* Distance selector */}
+                {/* GPS toggle + Distance selector */}
                 {!isSprintRunning && (
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[100, 200, 400, 800, 1600, 1800].map(d => (
-                        <button
-                          key={d}
-                          onClick={() => setSprintDistance(d)}
-                          className={cn(
-                            'py-2.5 rounded-xl text-sm font-medium transition-all',
-                            sprintDistance === d ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
-                          )}
-                        >{d >= 1000 ? `${(d/1000).toFixed(1)}k` : `${d}m`}</button>
-                      ))}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/40">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="text-xs font-medium">GPS Auto-Track</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {sprintUseGPS ? 'Auto-stops when distance reached' : 'Manual stop — you track distance'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSprintUseGPS(!sprintUseGPS)}
+                        className={cn(
+                          'w-11 h-6 rounded-full transition-colors relative',
+                          sprintUseGPS ? 'bg-primary' : 'bg-muted'
+                        )}
+                      >
+                        <span className={cn(
+                          'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
+                          sprintUseGPS ? 'translate-x-[22px]' : 'translate-x-0.5'
+                        )} />
+                      </button>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[100, 200, 400, 800, 1600, 1800].map(d => (
+                          <button
+                            key={d}
+                            onClick={() => setSprintDistance(d)}
+                            className={cn(
+                              'py-2.5 rounded-xl text-sm font-medium transition-all',
+                              sprintDistance === d ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                            )}
+                          >{d >= 1000 ? `${(d/1000).toFixed(1)}k` : `${d}m`}</button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -452,9 +503,25 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                 </div>
 
                 {isSprintRunning && (
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                    <span className="text-xs text-muted-foreground">Sprint in progress — tap stop when finished</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                      <span className="text-xs text-muted-foreground">
+                        {sprintUseGPS
+                          ? `GPS tracking — auto-stops at ${sprintDistance}m`
+                          : 'Manual mode — tap stop when finished'}
+                      </span>
+                    </div>
+                    {sprintUseGPS && (
+                      <div className="h-2 bg-muted rounded-full overflow-hidden mx-4">
+                        <motion.div
+                          className="h-full bg-warning rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((sprintDistanceCovered / sprintDistance) * 100, 100)}%` }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -494,10 +561,18 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Zap className="w-3.5 h-3.5 text-warning" />
-                            <span className="text-sm font-medium">{s.distance}m</span>
+                            <span className="text-sm font-medium">{s.distance >= 1000 ? `${(s.distance/1000).toFixed(1)}k` : `${s.distance}m`}</span>
                             <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full bg-secondary', feedback.color)}>{feedback.level}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground">{format(new Date(s.date), 'MMM d')}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{format(new Date(s.date), 'MMM d')}</span>
+                            <button
+                              onClick={() => deleteSprint(s.id)}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                         <div className="grid grid-cols-3 gap-3 text-center">
                           <div className="p-2 rounded-lg bg-secondary/40">
