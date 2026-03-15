@@ -323,9 +323,20 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
 
                 <div className="flex items-center justify-center gap-5 pt-2">
                   {!isRunning ? (
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startRun}
-                      className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg" style={{ background: 'var(--gradient-primary)' }}
-                    ><Play className="w-8 h-8 ml-1" /></motion.button>
+                    <>
+                      {(elapsed > 0 || distance > 0) && (
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => { setElapsed(0); setDistance(0); setPositions([]); }}
+                          className="w-14 h-14 rounded-full bg-secondary border-2 border-border flex items-center justify-center"
+                        >
+                          <RotateCcw className="w-5 h-5 text-muted-foreground" />
+                        </motion.button>
+                      )}
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startRun}
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-primary-foreground shadow-lg" style={{ background: 'var(--gradient-primary)' }}
+                      ><Play className="w-8 h-8 ml-1" /></motion.button>
+                    </>
                   ) : (
                     <>
                       <motion.button whileTap={{ scale: 0.9 }} onClick={pauseRun} className="w-16 h-16 rounded-full bg-secondary border-2 border-border flex items-center justify-center">
