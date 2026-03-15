@@ -572,11 +572,8 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
               ) : (
                 <div className="space-y-2">
                   {sessions.slice().reverse().map((s: any) => {
-                    const isExpanded = expandedRun === s.id;
                     return (
                       <div key={s.id} className="glass-card overflow-hidden">
-                        <button
-                          className="w-full p-4 text-left"
                         <div className="w-full p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
