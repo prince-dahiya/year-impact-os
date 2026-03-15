@@ -412,21 +412,46 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
                   </div>
                 </div>
 
-                {/* Distance selector */}
+                {/* GPS toggle + Distance selector */}
                 {!isSprintRunning && (
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[100, 200, 400, 800, 1600, 1800].map(d => (
-                        <button
-                          key={d}
-                          onClick={() => setSprintDistance(d)}
-                          className={cn(
-                            'py-2.5 rounded-xl text-sm font-medium transition-all',
-                            sprintDistance === d ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
-                          )}
-                        >{d >= 1000 ? `${(d/1000).toFixed(1)}k` : `${d}m`}</button>
-                      ))}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/40">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="text-xs font-medium">GPS Auto-Track</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {sprintUseGPS ? 'Auto-stops when distance reached' : 'Manual stop — you track distance'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSprintUseGPS(!sprintUseGPS)}
+                        className={cn(
+                          'w-11 h-6 rounded-full transition-colors relative',
+                          sprintUseGPS ? 'bg-primary' : 'bg-muted'
+                        )}
+                      >
+                        <span className={cn(
+                          'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
+                          sprintUseGPS ? 'translate-x-[22px]' : 'translate-x-0.5'
+                        )} />
+                      </button>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Target Distance</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[100, 200, 400, 800, 1600, 1800].map(d => (
+                          <button
+                            key={d}
+                            onClick={() => setSprintDistance(d)}
+                            className={cn(
+                              'py-2.5 rounded-xl text-sm font-medium transition-all',
+                              sprintDistance === d ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                            )}
+                          >{d >= 1000 ? `${(d/1000).toFixed(1)}k` : `${d}m`}</button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
