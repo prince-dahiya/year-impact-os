@@ -87,7 +87,7 @@ export function RunMap({ route, height = '200px', isLive = false, heading = null
             color: 'hsl(155, 100%, 45%)',
             weight: 4,
             opacity: 0.9,
-            smoothFactor: 1,
+            smoothFactor: 0,
           }).addTo(mapInstanceRef.current);
 
           // Add start marker
@@ -153,7 +153,7 @@ export function RunMap({ route, height = '200px', isLive = false, heading = null
           color: 'hsl(155, 100%, 45%)',
           weight: 4,
           opacity: 0.9,
-          smoothFactor: 1,
+          smoothFactor: 0,
         }).addTo(map);
 
         // Start marker
@@ -179,7 +179,7 @@ export function RunMap({ route, height = '200px', isLive = false, heading = null
         color: 'hsl(155, 100%, 45%)',
         weight: 4,
         opacity: 0.9,
-        smoothFactor: 1,
+        smoothFactor: 0,
       }).addTo(map);
       polylineRef.current = polyline;
 
