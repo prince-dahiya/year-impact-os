@@ -101,17 +101,26 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
     if ('geolocation' in navigator) {
       watchId.current = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude, longitude, heading: h } = pos.coords;
-          setPositions(prev => [...prev, [latitude, longitude]]);
+          const { latitude, longitude, heading: h, accuracy } = pos.coords;
+          // Skip inaccurate readings (>20m accuracy)
+          if (accuracy && accuracy > 20) return;
           if (h !== null && !isNaN(h)) setHeading(h);
           if (lastPos.current) {
             const d = haversine(lastPos.current.coords.latitude, lastPos.current.coords.longitude, latitude, longitude);
-            if (d > 0.005) setDistance(prev => prev + d);
+            // Only add point if moved >2m (reduces noise) but <100m (filters GPS jumps)
+            if (d > 0.002 && d < 0.1) {
+              setPositions(prev => [...prev, [latitude, longitude]]);
+              setDistance(prev => prev + d);
+              lastPos.current = pos;
+            }
+          } else {
+            // First point - always add
+            setPositions([[latitude, longitude]]);
+            lastPos.current = pos;
           }
-          lastPos.current = pos;
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     }
   }, []);
