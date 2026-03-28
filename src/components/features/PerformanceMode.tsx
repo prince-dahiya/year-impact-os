@@ -189,23 +189,26 @@ export function PerformanceMode({ onBack }: { onBack: () => void }) {
     if (sprintUseGPSRef.current && 'geolocation' in navigator) {
       sprintWatchRef.current = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setSprintPositions(prev => [...prev, [latitude, longitude]]);
+          const { latitude, longitude, accuracy } = pos.coords;
+          if (accuracy && accuracy > 15) return;
           if (sprintLastPos.current) {
             const d = haversine(sprintLastPos.current.coords.latitude, sprintLastPos.current.coords.longitude, latitude, longitude);
-            if (d > 0.001) {
+            if (d > 0.001 && d < 0.05) {
+              setSprintPositions(prev => [...prev, [latitude, longitude]]);
               sprintDistCoveredRef.current += d * 1000;
               setSprintDistanceCovered(sprintDistCoveredRef.current);
-              // Auto-stop when target distance reached
+              sprintLastPos.current = pos;
               if (sprintDistCoveredRef.current >= sprintDistanceRef.current) {
                 finishSprint(sprintElapsedRef.current, sprintDistCoveredRef.current);
               }
             }
+          } else {
+            setSprintPositions([[latitude, longitude]]);
+            sprintLastPos.current = pos;
           }
-          sprintLastPos.current = pos;
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     }
   }, [finishSprint]);
