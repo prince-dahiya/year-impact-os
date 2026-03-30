@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DiaryHub from './DiaryHub';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScores, usePoints } from '@/hooks/useAppData';
 import { StatCard } from '@/components/dashboard/StatCard';
