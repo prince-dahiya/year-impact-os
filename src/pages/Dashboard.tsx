@@ -24,6 +24,7 @@ export default function Dashboard() {
   const { yearlyScore, getStreakDays } = useScores(currentYear);
   const { points } = usePoints();
   const [showPerformance, setShowPerformance] = useState(false);
+  const [showDiary, setShowDiary] = useState(false);
 
   const hasData = yearlyScore.daysTracked > 0;
 
