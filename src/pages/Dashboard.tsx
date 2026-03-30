@@ -28,6 +28,10 @@ export default function Dashboard() {
 
   const hasData = yearlyScore.daysTracked > 0;
 
+  if (showDiary) {
+    return <DiaryHub onBack={() => setShowDiary(false)} />;
+  }
+
   if (showPerformance) {
     return (
       <AnimatePresence mode="wait">
