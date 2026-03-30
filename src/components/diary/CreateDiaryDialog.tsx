@@ -75,7 +75,7 @@ export function CreateDiaryDialog({ onClose, onCreate }: CreateDiaryDialogProps)
                   key={c}
                   onClick={() => setColor(c)}
                   className={`w-8 h-8 rounded-full transition-all ${color === c ? 'ring-2 ring-offset-2 ring-offset-background scale-110' : 'hover:scale-105'}`}
-                  style={{ backgroundColor: c, ringColor: c }}
+                  style={{ backgroundColor: c, '--tw-ring-color': c } as React.CSSProperties}
                 />
               ))}
             </div>

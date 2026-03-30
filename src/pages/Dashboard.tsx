@@ -15,7 +15,7 @@ import { PerformanceMode } from '@/components/features/PerformanceMode';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play, Star } from 'lucide-react';
+import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play, Star, BookOpen } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
