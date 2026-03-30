@@ -98,24 +98,44 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Performance Mode CTA */}
-        <motion.button
-          onClick={() => setShowPerformance(true)}
-          className="w-full glass-card p-4 flex items-center justify-between group"
-          whileHover={{ scale: 1.002 }}
-          whileTap={{ scale: 0.998 }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/15">
-              <Activity className="w-5 h-5 text-primary" />
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <motion.button
+            onClick={() => setShowPerformance(true)}
+            className="glass-card p-4 flex items-center justify-between group text-left"
+            whileHover={{ scale: 1.002 }}
+            whileTap={{ scale: 0.998 }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/15">
+                <Activity className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">Performance Mode</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Run Tracker · Sprints · Points</p>
+              </div>
             </div>
-            <div className="text-left">
-              <h3 className="font-semibold text-sm">Performance Mode</h3>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Run Tracker · Sprints · Challenges · Points</p>
+            <Play className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.button>
+
+          <motion.button
+            onClick={() => setShowDiary(true)}
+            className="glass-card p-4 flex items-center justify-between group text-left"
+            whileHover={{ scale: 1.002 }}
+            whileTap={{ scale: 0.998 }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'hsl(280 100% 55% / 0.15)' }}>
+                <BookOpen className="w-5 h-5" style={{ color: 'hsl(280 100% 55%)' }} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">My Diary</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Private · Secure · Personal</p>
+              </div>
             </div>
-          </div>
-          <Play className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        </motion.button>
+            <Play className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.button>
+        </div>
 
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-5">
