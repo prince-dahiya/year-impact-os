@@ -2,13 +2,17 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDailyActions, useCompletions, useBreaks } from '@/hooks/useAppData';
 import { format, isToday, isFuture, subDays, addDays } from 'date-fns';
-import { Check, Coffee, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, Coffee, ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export function DailyActionsTracker({ year }: { year: number }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   const { actions, isLoading } = useDailyActions(year);
+  const { deleteAction, updateAction } = useDailyActions(year);
   const { completions, toggleCompletion } = useCompletions(selectedDate);
   const { isBreakDay } = useBreaks(year);
 
@@ -18,6 +22,19 @@ export function DailyActionsTracker({ year }: { year: number }) {
   const completedCount = completions.length;
   const totalCount = actions.length;
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const startEditing = (id: string, name: string) => {
+    setEditingId(id);
+    setEditingName(name);
+  };
+
+  const saveEditing = () => {
+    if (editingId && editingName.trim()) {
+      updateAction(editingId, { name: editingName.trim() });
+    }
+    setEditingId(null);
+    setEditingName('');
+  };
 
   if (isLoading) return <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-14 glass-card animate-pulse" />)}</div>;
 
