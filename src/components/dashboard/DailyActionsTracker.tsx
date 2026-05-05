@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDailyActions, useCompletions, useBreaks } from '@/hooks/useAppData';
 import { format, isToday, isFuture, subDays, addDays } from 'date-fns';
-import { Check, Coffee, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, Coffee, ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export function DailyActionsTracker({ year }: { year: number }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const { actions, isLoading } = useDailyActions(year);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const { actions, isLoading, deleteAction, updateAction } = useDailyActions(year);
   const { completions, toggleCompletion } = useCompletions(selectedDate);
   const { isBreakDay } = useBreaks(year);
 
@@ -18,6 +21,19 @@ export function DailyActionsTracker({ year }: { year: number }) {
   const completedCount = completions.length;
   const totalCount = actions.length;
   const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const startEditing = (id: string, name: string) => {
+    setEditingId(id);
+    setEditingName(name);
+  };
+
+  const saveEditing = () => {
+    if (editingId && editingName.trim()) {
+      updateAction(editingId, { name: editingName.trim() });
+    }
+    setEditingId(null);
+    setEditingName('');
+  };
 
   if (isLoading) return <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-14 glass-card animate-pulse" />)}</div>;
 
@@ -69,18 +85,16 @@ export function DailyActionsTracker({ year }: { year: number }) {
           <p className="text-sm text-muted-foreground">No actions yet. Add a goal first — actions are created automatically.</p>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {actions.map((action, i) => {
             const isCompleted = completedIds.has(action.id);
             const canToggle = !isFutureDate && !isDateBreak;
             return (
-              <motion.button
+              <motion.div
                 key={action.id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                onClick={() => canToggle && toggleCompletion(action.id)}
-                disabled={!canToggle}
                 className={cn(
                   'w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all duration-150',
                   isCompleted
@@ -89,14 +103,52 @@ export function DailyActionsTracker({ year }: { year: number }) {
                   canToggle && !isCompleted && 'hover:bg-secondary/60 active:scale-[0.99]'
                 )}
               >
-                <div className={cn(
-                  'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
-                  isCompleted ? 'bg-primary border-primary' : 'border-muted-foreground/30'
-                )}>
-                  {isCompleted && <Check className="w-3 h-3 text-primary-foreground" />}
+                <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                  <button
+                    onClick={() => canToggle && toggleCompletion(action.id)}
+                    disabled={!canToggle || editingId === action.id}
+                    className={cn(
+                    'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
+                    isCompleted ? 'bg-primary border-primary' : 'border-muted-foreground/30',
+                    canToggle && editingId !== action.id && 'hover:border-primary'
+                    )}
+                  >
+                    {isCompleted && <Check className="w-3 h-3 text-primary-foreground" />}
+                  </button>
+                  {editingId === action.id ? (
+                    <Input
+                      value={editingName}
+                      onChange={event => setEditingName(event.target.value)}
+                      onKeyDown={event => event.key === 'Enter' && saveEditing()}
+                      className="h-8 bg-background/70 text-sm"
+                      autoFocus
+                    />
+                  ) : (
+                    <span className={cn('text-sm truncate', isCompleted && 'line-through text-muted-foreground')}>{action.name}</span>
+                  )}
                 </div>
-                <span className={cn('text-sm', isCompleted && 'line-through text-muted-foreground')}>{action.name}</span>
-              </motion.button>
+                <div className="flex items-center gap-1 shrink-0">
+                  {editingId === action.id ? (
+                    <>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveEditing}>
+                        <Check className="w-3.5 h-3.5 text-primary" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingId(null); setEditingName(''); }}>
+                        <X className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditing(action.id, action.name)}>
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteAction(action.id)}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive/70" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
             );
           })}
         </div>

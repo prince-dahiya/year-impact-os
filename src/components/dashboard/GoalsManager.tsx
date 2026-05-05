@@ -4,7 +4,7 @@ import { useGoals, useDailyActions } from '@/hooks/useAppData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Target, Trash2, ChevronDown, ChevronUp, Zap, Check } from 'lucide-react';
+import { Plus, Target, Trash2, ChevronDown, ChevronUp, Zap, Check, Pencil, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GOAL_TEMPLATES = [
@@ -55,11 +55,13 @@ const GOAL_TEMPLATES = [
 
 export function GoalsManager({ year }: { year: number }) {
   const { goals, createGoal, deleteGoal } = useGoals(year);
-  const { actions, createAction, deleteAction } = useDailyActions(year);
+  const { actions, createAction, deleteAction, updateAction } = useDailyActions(year);
   const [showTemplates, setShowTemplates] = useState(false);
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
   const [addingActionTo, setAddingActionTo] = useState<string | null>(null);
   const [newActionName, setNewActionName] = useState('');
+  const [editingActionId, setEditingActionId] = useState<string | null>(null);
+  const [editingActionName, setEditingActionName] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -86,6 +88,14 @@ export function GoalsManager({ year }: { year: number }) {
     createAction({ name: newActionName, goal_id: goalId, year });
     setNewActionName('');
     setAddingActionTo(null);
+  };
+
+  const saveActionName = () => {
+    if (editingActionId && editingActionName.trim()) {
+      updateAction(editingActionId, { name: editingActionName.trim() });
+    }
+    setEditingActionId(null);
+    setEditingActionName('');
   };
 
   const toggleExpand = (id: string) => {
@@ -215,14 +225,42 @@ export function GoalsManager({ year }: { year: number }) {
                           <p className="text-xs text-muted-foreground text-center py-2">No daily actions linked yet</p>
                         )}
                         {goalActions.map(action => (
-                          <div key={action.id} className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/40">
-                            <div className="flex items-center gap-2.5">
-                              <Zap className="w-3.5 h-3.5 text-primary/60" />
-                              <span className="text-sm">{action.name}</span>
+                          <div key={action.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-secondary/40">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <Zap className="w-3.5 h-3.5 text-primary/60 shrink-0" />
+                              {editingActionId === action.id ? (
+                                <Input
+                                  value={editingActionName}
+                                  onChange={event => setEditingActionName(event.target.value)}
+                                  onKeyDown={event => event.key === 'Enter' && saveActionName()}
+                                  className="h-8 bg-background/70 text-sm"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span className="text-sm truncate">{action.name}</span>
+                              )}
                             </div>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteAction(action.id)}>
-                              <Trash2 className="w-3 h-3 text-muted-foreground" />
-                            </Button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {editingActionId === action.id ? (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={saveActionName}>
+                                    <Check className="w-3 h-3 text-primary" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingActionId(null); setEditingActionName(''); }}>
+                                    <X className="w-3 h-3 text-muted-foreground" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingActionId(action.id); setEditingActionName(action.name); }}>
+                                    <Pencil className="w-3 h-3 text-muted-foreground" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteAction(action.id)}>
+                                    <Trash2 className="w-3 h-3 text-destructive/70" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         ))}
                         {addingActionTo === goal.id ? (

@@ -16,10 +16,10 @@ import { PerformanceMode } from '@/components/features/PerformanceMode';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play, Star, BookOpen } from 'lucide-react';
+import { Target, LogOut, Calendar, Zap, TrendingUp, Coffee, Activity, Brain, Gauge, Play, Star, BookOpen, RotateCcw } from 'lucide-react';
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, resetEverything } = useAuth();
   const currentYear = new Date().getFullYear();
   const { yearlyScore, getStreakDays } = useScores(currentYear);
   const { points } = usePoints();
@@ -62,6 +62,18 @@ export default function Dashboard() {
               </span>
             )}
             <span className="text-xs text-muted-foreground hidden sm:block">{user?.name}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (window.confirm('Reset all local accounts, goals, actions, diary, and performance history?')) {
+                  resetEverything();
+                }
+              }}
+              className="h-8 w-8 hover:text-destructive"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8">
               <LogOut className="w-4 h-4" />
             </Button>

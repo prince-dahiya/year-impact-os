@@ -1,20 +1,22 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Diary, DiaryEntry } from '@/types/diary';
+import { scopedStorageKey } from '@/lib/accountStorage';
 
 function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) => T)) => void] {
+  const storageKey = scopedStorageKey(key);
   const [state, setState] = useState<T>(() => {
     try {
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(storageKey);
       return stored ? JSON.parse(stored) : initial;
     } catch { return initial; }
   });
   const setValue = useCallback((val: T | ((prev: T) => T)) => {
     setState(prev => {
       const next = typeof val === 'function' ? (val as (prev: T) => T)(prev) : val;
-      localStorage.setItem(key, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
-  }, [key]);
+  }, [storageKey]);
   return [state, setValue];
 }
 
@@ -48,7 +50,7 @@ export function useDiaries() {
 
   const deleteDiary = useCallback((id: string) => {
     setDiaries(prev => prev.filter(d => d.id !== id));
-    localStorage.removeItem(`diary-entries-${id}`);
+    localStorage.removeItem(scopedStorageKey(`diary-entries-${id}`));
   }, [setDiaries]);
 
   const renameDiary = useCallback((id: string, name: string) => {
