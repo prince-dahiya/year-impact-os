@@ -1,11 +1,13 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Goal, DailyAction, ActionCompletion, Break, MonthlyScore, YearlyScore, SprintSession, Challenge, PointEntry } from '@/types';
 import { format, getDaysInMonth, eachDayOfInterval, startOfMonth, endOfMonth, isAfter, isWithinInterval, parseISO, subDays, startOfWeek, endOfWeek } from 'date-fns';
+import { scopedStorageKey } from '@/lib/accountStorage';
 
 function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) => T)) => void] {
+  const storageKey = scopedStorageKey(key);
   const [state, setState] = useState<T>(() => {
     try {
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(storageKey);
       return stored ? JSON.parse(stored) : initial;
     } catch { return initial; }
   });
@@ -13,10 +15,10 @@ function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) =
   const setValue = useCallback((val: T | ((prev: T) => T)) => {
     setState(prev => {
       const next = typeof val === 'function' ? (val as (prev: T) => T)(prev) : val;
-      localStorage.setItem(key, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
-  }, [key]);
+  }, [storageKey]);
 
   return [state, setValue];
 }
@@ -50,7 +52,11 @@ export function useDailyActions(year: number) {
     setActions(prev => prev.filter(a => a.id !== id));
   }, [setActions]);
 
-  return { actions: actions.filter(a => a.is_active), createAction, deleteAction, isLoading: false };
+  const updateAction = useCallback((id: string, updates: Partial<Pick<DailyAction, 'name'>>) => {
+    setActions(prev => prev.map(action => action.id === id ? { ...action, ...updates } : action));
+  }, [setActions]);
+
+  return { actions: actions.filter(a => a.is_active), createAction, deleteAction, updateAction, isLoading: false };
 }
 
 export function useCompletions(date: Date) {
