@@ -4,7 +4,7 @@ import { useGoals, useDailyActions } from '@/hooks/useAppData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Target, Trash2, ChevronDown, ChevronUp, Zap, Check } from 'lucide-react';
+import { Plus, Target, Trash2, ChevronDown, ChevronUp, Zap, Check, Pencil, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GOAL_TEMPLATES = [
@@ -55,11 +55,13 @@ const GOAL_TEMPLATES = [
 
 export function GoalsManager({ year }: { year: number }) {
   const { goals, createGoal, deleteGoal } = useGoals(year);
-  const { actions, createAction, deleteAction } = useDailyActions(year);
+  const { actions, createAction, deleteAction, updateAction } = useDailyActions(year);
   const [showTemplates, setShowTemplates] = useState(false);
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
   const [addingActionTo, setAddingActionTo] = useState<string | null>(null);
   const [newActionName, setNewActionName] = useState('');
+  const [editingActionId, setEditingActionId] = useState<string | null>(null);
+  const [editingActionName, setEditingActionName] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -86,6 +88,14 @@ export function GoalsManager({ year }: { year: number }) {
     createAction({ name: newActionName, goal_id: goalId, year });
     setNewActionName('');
     setAddingActionTo(null);
+  };
+
+  const saveActionName = () => {
+    if (editingActionId && editingActionName.trim()) {
+      updateAction(editingActionId, { name: editingActionName.trim() });
+    }
+    setEditingActionId(null);
+    setEditingActionName('');
   };
 
   const toggleExpand = (id: string) => {
