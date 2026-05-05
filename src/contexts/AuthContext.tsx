@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const account: StoredAccount = { id: crypto.randomUUID(), email: normalizedEmail, password, profile: { ...profile, email: normalizedEmail } };
       writeAccounts([...accounts, account]);
       localStorage.setItem(SESSION_STORAGE_KEY, account.id);
-      setUser(profile);
+      setUser(account.profile);
       return { error: null };
     } catch (e) {
       return { error: e as Error };
