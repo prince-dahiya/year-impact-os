@@ -75,6 +75,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Space Grotesk', system-ui, sans-serif;
+    background: var(--gradient-sunrise);
+    background-attachment: fixed;
   }
 
   code, .font-mono {
@@ -84,7 +86,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl;
+    @apply bg-card/70 backdrop-blur-xl border border-border/60 rounded-xl;
     box-shadow: var(--shadow-card);
   }
 
@@ -93,8 +95,9 @@
   }
 
   .glass-card-hover:hover {
-    @apply border-primary/30;
+    @apply border-primary/40;
     box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
   }
 
   .neon-text {
