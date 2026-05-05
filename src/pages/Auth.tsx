@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Zap, Target, TrendingUp, Shield } from 'lucide-react';
+import { Loader2, Zap, Target, TrendingUp, Shield, RotateCcw } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,7 +12,7 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetEverything } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +39,11 @@ export default function AuthPage() {
   ];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative overflow-hidden">
+      <div className="absolute inset-0 bg-[var(--gradient-sunrise)] opacity-70" />
       {/* Left - Branding */}
       <div className="hidden lg:flex flex-1 flex-col justify-center px-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/3" />
+        <div className="absolute inset-0 bg-[var(--gradient-confetti)] opacity-80" />
         <div className="relative z-10 space-y-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="flex items-center gap-3 mb-2">
@@ -78,7 +79,7 @@ export default function AuthPage() {
       </div>
 
       {/* Right - Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -143,6 +144,23 @@ export default function AuthPage() {
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </p>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-xs text-muted-foreground hover:text-destructive"
+            onClick={() => {
+              if (window.confirm('Reset all local accounts, goals, actions, diary, and performance history?')) {
+                resetEverything();
+                setEmail('');
+                setPassword('');
+                setFullName('');
+                setError('Everything was reset. Create a fresh account now.');
+              }
+            }}
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Reset everything on this device
+          </Button>
         </motion.div>
       </div>
     </div>
