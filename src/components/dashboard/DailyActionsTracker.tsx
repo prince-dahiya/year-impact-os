@@ -11,8 +11,7 @@ export function DailyActionsTracker({ year }: { year: number }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  const { actions, isLoading } = useDailyActions(year);
-  const { deleteAction, updateAction } = useDailyActions(year);
+  const { actions, isLoading, deleteAction, updateAction } = useDailyActions(year);
   const { completions, toggleCompletion } = useCompletions(selectedDate);
   const { isBreakDay } = useBreaks(year);
 
