@@ -16,6 +16,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => void;
+  resetEverything: () => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
 }
 
@@ -86,6 +87,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const resetEverything = () => {
+    const keysToRemove: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('year-impact') || key === 'diaries' || key.startsWith('diary-entries-')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    setUser(null);
+  };
+
   const updateProfile = (updates: Partial<UserProfile>) => {
     if (user) {
       const updated = { ...user, ...updates };
@@ -96,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, signUp, signIn, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, signUp, signIn, signOut, resetEverything, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
